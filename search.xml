@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Home</title>
-    <url>/2026/03/15/Home/</url>
-    <content><![CDATA[<h2 id="这里是-Rexisli"><a href="#这里是-Rexisli" class="headerlink" title="这里是 Rexisli"></a>这里是 Rexisli</h2><hr>
-<h2 id="📚-内容导航"><a href="#📚-内容导航" class="headerlink" title="📚 内容导航"></a>📚 内容导航</h2><h3 id="C"><a href="#C" class="headerlink" title="C++"></a>C++</h3><ul>
-  
-<ul>
-]]></content>
+    <title>C++Template</title>
+    <url>/2026/04/26/C-Template/</url>
+    <content><![CDATA[<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;bits/stdc++.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> mem(x,y) memset(x,y,sizeof(x))</span></span><br><span class="line"><span class="comment">//#define int long long</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> endl <span class="string">&quot;\n&quot;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">signed</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">	ios::<span class="built_in">sync_with_stdio</span>(<span class="literal">false</span>);</span><br><span class="line">	cin.<span class="built_in">tie</span>(<span class="literal">nullptr</span>),cout.<span class="built_in">tie</span>(<span class="literal">nullptr</span>);</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
       <tags>
-        <tag>None</tag>
+        <tag>C++</tag>
       </tags>
   </entry>
 </search>
