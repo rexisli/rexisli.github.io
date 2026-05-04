@@ -24,11 +24,11 @@
 <p><strong>总移动次数</strong>：<code>T(B) = O(m·B + n + n²/B)</code>。<br>
 由均值不等式，当 <code>m·B ≈ n²/B</code> 即 <code>B = n/√m</code> 时取得最小值。若 <code>n ≈ m</code>，则 <code>B = √n</code>，此时 <code>T = O(n√n)</code>。<br>
 ✅ <strong>结论</strong>：块大小取 <code>√n</code>（或原代码的 <code>√m</code>，在 <code>n≈m</code> 时等价）可使总转移次数最优。</p>
-<h3 id="3-奇偶块优化-蛇形排序-原理">3. 奇偶块优化（蛇形排序）原理</h3>
+<h3 id="3-奇偶块优化（蛇形排序）原理">3. 奇偶块优化（蛇形排序）原理</h3>
 <p>传统莫队同块内 <code>r</code> 始终升序。当处理完第 <code>k</code> 块（<code>r</code> 停在 <code>n</code>）切换至第 <code>k+1</code> 块时，<code>r</code> 需从 <code>n</code> 暴力跳回 <code>1</code>，产生 <code>O(n)</code> 的冗余移动。<br>
 <strong>奇偶优化</strong>：奇数块 <code>r</code> 升序，偶数块 <code>r</code> 降序。切换块时，<code>r</code> 的起点与下一块的起点天然靠近，避免了“折返跑”。<br>
 <strong>效果</strong>：常数级优化，实际运行时间通常可缩短 <code>30%~50%</code>，且不改变渐进复杂度。</p>
-<h3 id="4-时间复杂度严格证明：o-n-m-n">4. 时间复杂度严格证明：<code>O((n+m)√n)</code></h3>
+<h3 id="4-时间复杂度严格证明：O-n-m-√n">4. 时间复杂度严格证明：<code>O((n+m)√n)</code></h3>
 <ul>
 <li><strong>排序复杂度</strong>：<code>O(m log m)</code>，通常远小于转移复杂度。</li>
 <li><strong>转移复杂度</strong>：如上所述，<code>L</code> 移动 <code>O(m√n + n)</code>，<code>R</code> 移动 <code>O(n√n)</code>。</li>
@@ -71,7 +71,7 @@
 <li><strong>统一奇偶性</strong>：原字符串中，奇数长度回文中心在字符上，偶数长度回文中心在字符间隙。插入 <code>#</code> 后，所有回文中心都落在字符上，且回文长度恒为奇数。</li>
 <li><strong>哨兵防越界</strong>：<code>~</code> 和 <code>$</code> 是任意两个<strong>不相同</strong>且不在原串中出现的字符。在 <code>while(s[i-p[i]] == s[i+p[i]])</code> 扩展时，一旦触达边界必然不相等，自动终止循环，省去 <code>i-p[i]&gt;=0 &amp;&amp; i+p[i]&lt;len</code> 的判断开销。</li>
 </ul>
-<h3 id="2-核心递推公式证明：p-i-min-p-2-c-i-r-i">2. 核心递推公式证明：<code>p[i] = min(p[2*C-i], R-i)</code></h3>
+<h3 id="2-核心递推公式证明：p-i-min-p-2-C-i-R-i">2. 核心递推公式证明：<code>p[i] = min(p[2*C-i], R-i)</code></h3>
 <p>设当前遍历到位置 <code>i</code>，且 <code>i &lt; R</code>。令 <code>j = 2*C - i</code> 为 <code>i</code> 关于 <code>C</code> 的对称点。已知以 <code>C</code> 为中心的回文串覆盖区间为 <code>[C-(R-C), R-1]</code>（注意 <code>R</code> 是右边界下一位置）。根据 <code>p[j]</code> 与左边界 <code>C-(R-C)</code> 的关系，分三种情况：</p>
 <table>
 <thead>
@@ -104,7 +104,7 @@
 </tbody>
 </table>
 <p><strong>综上</strong>：无论哪种情况，<code>p[i]</code> 的初始安全下界都是 <code>min(p[j], R-i)</code>。算法先赋予该值，再通过 <code>while</code> 处理情况②的后续扩展，保证了正确性且不漏掉任何可能。</p>
-<h3 id="3-时间复杂度证明：o-n">3. 时间复杂度证明：<code>O(N)</code></h3>
+<h3 id="3-时间复杂度证明：O-N">3. 时间复杂度证明：<code>O(N)</code></h3>
 <ul>
 <li><code>R</code> 是<strong>单调不减</strong>的。每次 <code>while</code> 循环成功匹配一次，意味着 <code>s[i+p[i]]</code> 与 <code>s[i-p[i]]</code> 相等，此时 <code>i+p[i]</code> 会尝试突破当前的 <code>R</code>。</li>
 <li>一旦突破，<code>R</code> 就会被更新为更大的值。由于 <code>R</code> 最大只能达到 <code>len</code>，整个算法过程中 <code>while</code> 循环的成功比较次数最多为 <code>len</code> 次。</li>

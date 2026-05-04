@@ -132,11 +132,11 @@
 <p><strong>总移动次数</strong>：<code>T(B) = O(m·B + n + n²/B)</code>。<br>
 由均值不等式，当 <code>m·B ≈ n²/B</code> 即 <code>B = n/√m</code> 时取得最小值。若 <code>n ≈ m</code>，则 <code>B = √n</code>，此时 <code>T = O(n√n)</code>。<br>
 ✅ <strong>结论</strong>：块大小取 <code>√n</code>（或原代码的 <code>√m</code>，在 <code>n≈m</code> 时等价）可使总转移次数最优。</p>
-<h3 id="3-奇偶块优化-蛇形排序-原理">3. 奇偶块优化（蛇形排序）原理</h3>
+<h3 id="3-奇偶块优化（蛇形排序）原理">3. 奇偶块优化（蛇形排序）原理</h3>
 <p>传统莫队同块内 <code>r</code> 始终升序。当处理完第 <code>k</code> 块（<code>r</code> 停在 <code>n</code>）切换至第 <code>k+1</code> 块时，<code>r</code> 需从 <code>n</code> 暴力跳回 <code>1</code>，产生 <code>O(n)</code> 的冗余移动。<br>
 <strong>奇偶优化</strong>：奇数块 <code>r</code> 升序，偶数块 <code>r</code> 降序。切换块时，<code>r</code> 的起点与下一块的起点天然靠近，避免了“折返跑”。<br>
 <strong>效果</strong>：常数级优化，实际运行时间通常可缩短 <code>30%~50%</code>，且不改变渐进复杂度。</p>
-<h3 id="4-时间复杂度严格证明：o-n-m-n">4. 时间复杂度严格证明：<code>O((n+m)√n)</code></h3>
+<h3 id="4-时间复杂度严格证明：O-n-m-√n">4. 时间复杂度严格证明：<code>O((n+m)√n)</code></h3>
 <ul>
 <li><strong>排序复杂度</strong>：<code>O(m log m)</code>，通常远小于转移复杂度。</li>
 <li><strong>转移复杂度</strong>：如上所述，<code>L</code> 移动 <code>O(m√n + n)</code>，<code>R</code> 移动 <code>O(n√n)</code>。</li>
