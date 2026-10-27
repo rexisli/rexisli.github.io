@@ -1,0 +1,17 @@
+# Fluid 主题覆盖配置
+# 这里只写与主题默认不同的项，其余全部沿用 hexo-theme-fluid 的默认值。
+
+navbar:
+  blog_title: 'Rexisli'
+
+index:
+  slogan:
+    - 记录一些值得记下的东西
+
+post:
+  math:
+    enable: true
+
+footer:
+  content: |
+    <a href="https://hexo.io" target="_blank" rel="nofollow noopener">Hexo</a> + <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">Fluid</a>
