@@ -10,7 +10,13 @@ index:
 
 post:
   math:
-    enable: true
+    # 公式已由 markdown-it-katex 在构建时静态渲染，这里关闭客户端 MathJax 以免重复处理
+    enable: false
+    engine: katex
+
+# 本地 KaTeX 样式（含 woff2 字体，不走 CDN）
+custom_css:
+  - /css/katex.min.css
 
 footer:
   content: |

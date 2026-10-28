@@ -85,3 +85,18 @@ theme: fluid
 include:
 exclude:
 ignore:
+
+# Markdown 渲染：用 markdown-it + KaTeX，公式在构建时静态渲染（不依赖 CDN）
+markdown:
+  preset: 'default'
+  render:
+    html: true
+    xhtmlOut: false
+    breaks: true
+    linkify: true
+    typographer: false
+  plugins:
+    - name: '@neilsustc/markdown-it-katex'
+      options:
+        throwOnError: false
+        errorColor: '#cc0000'
