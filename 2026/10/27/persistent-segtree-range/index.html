@@ -1,0 +1,942 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="rexisli">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="摘要 给线段树加了懒标记之后，「路径复制」就不够了。原因很直接：@@push_down@@ 要写子结点，而子结点往往正被旧版本共享着——一次下传就把历史版本悄悄改坏。本文给出两处修正，它们配合才能得到正确的可持久化懒标记线段树：  写时复制：@@push_down@@ 在动左右儿子之前先 @@clone_node@@； 标记计入自身值（append-tag）：结点 @@dat@@ 里预先算进自己的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="主席树（区间加、区间赋值）">
+<meta property="og:url" content="https://rexisli.github.io/2026/10/27/persistent-segtree-range/index.html">
+<meta property="og:site_name" content="Rexisli">
+<meta property="og:description" content="摘要 给线段树加了懒标记之后，「路径复制」就不够了。原因很直接：@@push_down@@ 要写子结点，而子结点往往正被旧版本共享着——一次下传就把历史版本悄悄改坏。本文给出两处修正，它们配合才能得到正确的可持久化懒标记线段树：  写时复制：@@push_down@@ 在动左右儿子之前先 @@clone_node@@； 标记计入自身值（append-tag）：结点 @@dat@@ 里预先算进自己的">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-27T15:42:00.000Z">
+<meta property="article:modified_time" content="2026-10-28T05:08:08.255Z">
+<meta property="article:author" content="rexisli">
+<meta property="article:tag" content="主席树">
+<meta property="article:tag" content="可持久化线段树">
+<meta property="article:tag" content="懒标记">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>主席树（区间加、区间赋值） - Rexisli</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+  
+<link rel="stylesheet" href="/css/katex.min.css">
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"rexisli.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Rexisli</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/tags/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-tags-fill"></i>
+                  <span>标签</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="主席树（区间加、区间赋值）"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-27 23:42" pubdate>
+          2026年10月27日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          11k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          90 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">主席树（区间加、区间赋值）</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h2 id="摘要">摘要</h2>
+<p>给线段树加了懒标记之后，「路径复制」就不够了。原因很直接：@@push_down@@ 要<strong>写子结点</strong>，而子结点往往正被旧版本共享着——一次下传就把历史版本悄悄改坏。本文给出两处修正，它们配合才能得到正确的可持久化懒标记线段树：</p>
+<ol>
+<li><strong>写时复制</strong>：@@push_down@@ 在动左右儿子之前先 @@clone_node@@；</li>
+<li><strong>标记计入自身值</strong>（append-tag）：结点 @@dat@@ 里预先算进自己的标记，于是部分覆盖的查询可以沿途累加父标记、根本不需要下传。</li>
+</ol>
+<p>前者保证不污染历史，后者把「必须下传」的需求削掉一大半。文末给出代价估计与几个只在多版本交叉查询时才暴露的坑。</p>
+<h2 id="1-问题与记号">1 问题与记号</h2>
+<p>维护序列的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false">(</mo><mi>l</mi><mo separator="true">,</mo><mi>r</mi><mo separator="true">,</mo><mi>v</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{Add}(l,r,v)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">Add</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0197em;">l</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mclose">)</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">n</mi></mrow><mo stretchy="false">(</mo><mi>l</mi><mo separator="true">,</mo><mi>r</mi><mo separator="true">,</mo><mi>v</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{Assign}(l,r,v)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">Assign</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0197em;">l</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mclose">)</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">Q</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">y</mi></mrow><mo stretchy="false">(</mo><mi>l</mi><mo separator="true">,</mo><mi>r</mi><mo stretchy="false">)</mo><mo>=</mo><mo>∑</mo></mrow><annotation encoding="application/x-tex">\mathrm{Query}(l,r)=\sum</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm" style="margin-right:0.0139em;">Query</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0197em;">l</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span></span></span></span>，并且每次修改都从某个<strong>历史版本</strong>出发，产生一个新版本，老版本永远可查。</p>
+<p>记号同前两篇：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">T(u)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span></span></span></span> 为结点值域，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo><mo>=</mo><mi mathvariant="normal">∣</mi><mi>T</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo><mi mathvariant="normal">∣</mi></mrow><annotation encoding="application/x-tex">L(u)=|T(u)|</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">L</span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span><span class="mord">∣</span></span></span></span>，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{dat}(u)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">dat</span></span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span></span></span></span> 为结点值。标记三元组：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">n</mi></mrow><annotation encoding="application/x-tex">\mathrm{is\_assign}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9779em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">is_assign</span></span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">n</mi></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_assign}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_assign</span></span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_add}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span></span></span></span>，语义为「先赋值 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">n</mi></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_assign}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_assign</span></span></span></span></span>，再整体加 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_add}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span></span></span></span>」。</p>
+<h2 id="2-直接照搬为什么坏">2 直接照搬为什么坏</h2>
+<p>设版本 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">V_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">V_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 共享结点 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span>（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span> 带标记、其子结点也是共享的）。现在对 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">V_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 做一次<strong>部分覆盖</strong>的区间加：</p>
+<ol>
+<li>@@add@@ 在路径上 @@clone_node@@，得到副本 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>u</mi><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msup></mrow><annotation encoding="application/x-tex">u&#x27;</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7519em;"></span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7519em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span></span></span></span></span></span></span></span>；</li>
+<li>@@push_down(u')@@ —— 若它直接把 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi></mrow><annotation encoding="application/x-tex">\mathrm{lazy}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathrm" style="margin-right:0.0139em;">lazy</span></span></span></span></span> 写进 @@tr[u'.lc]@@，而 @@u'.lc@@ 仍是<strong>旧下标</strong>（与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">V_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 共用），那么 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">V_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的这棵子树就被改了。</li>
+</ol>
+<p><strong>引理 1（污染）.</strong> 若 @@push_down@@ 不复制子结点就写入，则存在版本对 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>V</mi><mn>1</mn></msub><mo separator="true">,</mo><msub><mi>V</mi><mn>2</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(V_1,V_2)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span> 与操作序列，使 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">V_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的查询结果改变。</p>
+<p><em>证明.</em> 上例即构造：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">V_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的结点 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span> 的子结点值被加上 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>v</mi></mrow><annotation encoding="application/x-tex">v</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span></span></span></span>，而 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">V_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{dat}(u)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">dat</span></span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span></span></span></span> 未变，于是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">V_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 在 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span> 以下的部分覆盖查询结果偏移。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">□</mi></mrow><annotation encoding="application/x-tex">\square</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.675em;"></span><span class="mord amsrm">□</span></span></span></span></p>
+<p>这个 bug 的可怕之处：单版本测试、随机对拍（在同一版本上连续操作）<strong>全部通过</strong>，只有「从旧版本再查询」时才错。</p>
+<h2 id="3-修正一：下传前复制">3 修正一：下传前复制</h2>
+<p>@@push_down@@ 的每一步写子结点之前，先 @@clone_node@@ 并更新父结点里的子指针：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">push_down</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r)</span> </span>&#123;<br>	<span class="hljs-type">int</span> mid = (l + r) &gt;&gt; <span class="hljs-number">1</span>;<br>	<span class="hljs-keyword">if</span> (tr[rt].is_assign) &#123;<br>		tr[rt].lc = <span class="hljs-built_in">clone_node</span>(tr[rt].lc);   <span class="hljs-comment">// 先复制，再写</span><br>		tr[rt].rc = <span class="hljs-built_in">clone_node</span>(tr[rt].rc);<br>		<span class="hljs-built_in">apply_assign</span>(tr[rt].lc, l, mid, tr[rt].lazy_assign);<br>		<span class="hljs-built_in">apply_assign</span>(tr[rt].rc, mid + <span class="hljs-number">1</span>, r, tr[rt].lazy_assign);<br>		tr[rt].is_assign = <span class="hljs-literal">false</span>;<br>	&#125;<br>	<span class="hljs-keyword">if</span> (tr[rt].lazy_add) &#123;<br>		tr[rt].lc = <span class="hljs-built_in">clone_node</span>(tr[rt].lc);   <span class="hljs-comment">// 同上</span><br>		tr[rt].rc = <span class="hljs-built_in">clone_node</span>(tr[rt].rc);<br>		<span class="hljs-built_in">apply_add</span>(tr[rt].lc, l, mid, tr[rt].lazy_add);<br>		<span class="hljs-built_in">apply_add</span>(tr[rt].rc, mid + <span class="hljs-number">1</span>, r, tr[rt].lazy_add);<br>		tr[rt].lazy_add = <span class="hljs-number">0</span>;<br>	&#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>这样写的是本版本私有的新结点，历史版本仍指向原来的结点。</p>
+<h2 id="4-修正二：dat-记入自身标记">4 修正二：dat 记入自身标记</h2>
+<p>若结点有标记 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_add}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span></span></span></span> 而子结点还没收到，那么该结点的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><annotation encoding="application/x-tex">\mathrm{dat}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathrm">dat</span></span></span></span></span> 应当是「子树真实值 + 自身标记 × 长度」。@@push_up@@ 因此分两支：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">push_up</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r)</span> </span>&#123;<br>	<span class="hljs-type">int</span> res = <span class="hljs-number">0</span>;<br>	<span class="hljs-keyword">if</span> (tr[rt].is_assign) &#123;<br>		res = (tr[rt].lazy_assign + tr[rt].lazy_add) * (r - l + <span class="hljs-number">1</span>);<br>	&#125; <span class="hljs-keyword">else</span> &#123;<br>		res += (tr[rt].lc != <span class="hljs-number">-1</span> ? tr[tr[rt].lc].dat : <span class="hljs-number">0</span>);<br>		res += (tr[rt].rc != <span class="hljs-number">-1</span> ? tr[tr[rt].rc].dat : <span class="hljs-number">0</span>);<br>		res += tr[rt].lazy_add * (r - l + <span class="hljs-number">1</span>);<br>	&#125;<br>	tr[rt].dat = res;<br>&#125;<br></code></pre></td></tr></table></figure>
+<ul>
+<li>若 @@is_assign@@：整个结点值相同，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><mo>=</mo><mo stretchy="false">(</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">n</mi></mrow><mo>+</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false">)</mo><mo>⋅</mo><mi>L</mi></mrow><annotation encoding="application/x-tex">\mathrm{dat}=(\mathrm{lazy\_assign}+\mathrm{lazy\_add})\cdot L</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathrm">dat</span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.06em;vertical-align:-0.31em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathrm">lazy_assign</span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.06em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span>，与子树无关；</li>
+<li>否则：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><mo>=</mo><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false">(</mo><mi>l</mi><mi>c</mi><mo stretchy="false">)</mo><mo>+</mo><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false">(</mo><mi>r</mi><mi>c</mi><mo stretchy="false">)</mo><mo>+</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><mo>⋅</mo><mi>L</mi></mrow><annotation encoding="application/x-tex">\mathrm{dat}=\mathrm{dat}(lc)+\mathrm{dat}(rc)+\mathrm{lazy\_add}\cdot L</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathrm">dat</span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">dat</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0197em;">l</span><span class="mord mathnormal">c</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">dat</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mord mathnormal">c</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span>$。</li>
+</ul>
+<p><strong>引理 2.</strong> 上述 @@push_up@@ 在两种情形下都给出 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{dat}(u)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">dat</span></span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span></span></span></span> 的正确值。</p>
+<p><em>证明.</em> 情形一由赋值语义直接得出。情形二：子结点值已各自记入其自身标记（归纳假设），尚未计入的只有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span> 自己的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_add}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span></span></span></span>，它对每个元素贡献 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_add}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span></span></span></span>，共 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi></mrow><annotation encoding="application/x-tex">L</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span> 份。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">□</mi></mrow><annotation encoding="application/x-tex">\square</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.675em;"></span><span class="mord amsrm">□</span></span></span></span></p>
+<p>这个做法常被叫<strong>标记永久化</strong>的思路：标记不急着下传，而是永久留在结点上、在每个用到它的地方补算出贡献。</p>
+<h2 id="5-查询：沿途累加">5 查询：沿途累加</h2>
+<p>既然标记不一定已下传，@@query@@ 必须自己补：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">query</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r, <span class="hljs-type">int</span> lb, <span class="hljs-type">int</span> ub)</span> </span>&#123;<br>	<span class="hljs-keyword">if</span> (rt == <span class="hljs-number">-1</span>) <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>	<span class="hljs-keyword">if</span> (lb &lt;= l &amp;&amp; r &lt;= ub) <span class="hljs-keyword">return</span> tr[rt].dat;<br>	<span class="hljs-type">int</span> L = <span class="hljs-built_in">max</span>(l, lb), R = <span class="hljs-built_in">min</span>(r, ub), len = R - L + <span class="hljs-number">1</span>;<br>	<span class="hljs-keyword">if</span> (tr[rt].is_assign) <span class="hljs-keyword">return</span> (tr[rt].lazy_assign + tr[rt].lazy_add) * len;<br>	<span class="hljs-type">int</span> res = <span class="hljs-number">0</span>, mid = (l + r) &gt;&gt; <span class="hljs-number">1</span>;<br>	<span class="hljs-keyword">if</span> (lb &lt;= mid) res += <span class="hljs-built_in">query</span>(tr[rt].lc, l, mid, lb, ub);<br>	<span class="hljs-keyword">if</span> (mid &lt; ub)  res += <span class="hljs-built_in">query</span>(tr[rt].rc, mid + <span class="hljs-number">1</span>, r, lb, ub);<br>	<span class="hljs-keyword">if</span> (tr[rt].lazy_add) res += tr[rt].lazy_add * len;<br>	<span class="hljs-keyword">return</span> res;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p><strong>引理 3.</strong> 设结点 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span> 值域被查询区间部分覆盖，重叠长度 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow><annotation encoding="application/x-tex">\mathrm{len}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathrm">len</span></span></span></span></span>，则</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mrow><mi mathvariant="normal">Q</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">y</mi></mrow><mo>∩</mo><mi>T</mi><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo><mo>=</mo><mtext>递归结果</mtext><mo>+</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo><mo>⋅</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow><mo separator="true">,</mo></mrow><annotation encoding="application/x-tex">\mathrm{Query}\cap T(u)=\text{递归结果}+\mathrm{lazy\_add}(u)\cdot\mathrm{len},
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathrm" style="margin-right:0.0139em;">Query</span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∩</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord text"><span class="mord cjk_fallback">递归结果</span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.06em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathrm">len</span></span><span class="mpunct">,</span></span></span></span></span></p>
+<p>若 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span> 带 @@is_assign@@，则直接返回 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">n</mi></mrow><mo>+</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false">)</mo><mo>⋅</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></mrow><annotation encoding="application/x-tex">(\mathrm{lazy\_assign}+\mathrm{lazy\_add})\cdot\mathrm{len}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.06em;vertical-align:-0.31em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathrm">lazy_assign</span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.06em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathrm">len</span></span></span></span></span>。</p>
+<p><em>证明.</em> 以 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span> 为界把查询区间切成完全覆盖部分与部分覆盖部分；完全覆盖部分已被 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{dat}(u)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">dat</span></span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span></span></span></span> 计入（第 4 节引理 2），部分覆盖部分递归下去，唯一未计入的是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_add}(u)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.06em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span></span></span></span> 对重叠段的贡献，即 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo><mo>⋅</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_add}(u)\cdot\mathrm{len}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.06em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathrm">len</span></span></span></span></span>。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">□</mi></mrow><annotation encoding="application/x-tex">\square</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.675em;"></span><span class="mord amsrm">□</span></span></span></span></p>
+<p>注意顺序：递归结果与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><mo>⋅</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></mrow><annotation encoding="application/x-tex">\mathrm{lazy\_add}\cdot\mathrm{len}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">lazy_add</span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathrm">len</span></span></span></span></span> 相加放在返回前，与「先累加再递归」等价，但前者少一层参数。</p>
+<h2 id="6-不变量与代价">6 不变量与代价</h2>
+<p><strong>不变量 I（双份记录）.</strong> 对每个可达结点：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false">(</mo><mi>u</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{dat}(u)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">dat</span></span><span class="mopen">(</span><span class="mord mathnormal">u</span><span class="mclose">)</span></span></span></span> 已计入 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span> 自身标记的贡献；而子树中尚未收到该标记的结点不知道它。查询时由第 5 节补齐。</p>
+<p><strong>定理.</strong> 第 3、4、5 节的三处修正合起来，使任意版本上的任意操作与暴力一致。</p>
+<p><em>证明提纲.</em> 对操作序列归纳：@@add@@/@@assign@@ 沿路径复制并维护 I（引理 2）；@@push_down@@ 复制后不破坏任何历史版本（引理 1 的反面）；查询由引理 3 补齐。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">□</mi></mrow><annotation encoding="application/x-tex">\square</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.675em;"></span><span class="mord amsrm">□</span></span></span></span></p>
+<p><strong>代价.</strong></p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>普通懒标记线段树</th>
+<th>可持久化版</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每操作新结点</td>
+<td>0</td>
+<td><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>log</mi><mo>⁡</mo><mi>n</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(\log n)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="mopen">(</span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">n</span><span class="mclose">)</span></span></span></span></td>
+</tr>
+<tr>
+<td>@@push_down@@ 额外复制</td>
+<td>0</td>
+<td>至多 2</td>
+</tr>
+<tr>
+<td>单次操作常数</td>
+<td>1×</td>
+<td>约 2~3×</td>
+</tr>
+<tr>
+<td>空间</td>
+<td><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(n)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="mopen">(</span><span class="mord mathnormal">n</span><span class="mclose">)</span></span></span></span></td>
+<td><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mo stretchy="false">(</mo><mi>n</mi><mo>+</mo><mi>m</mi><mo stretchy="false">)</mo><mi>log</mi><mo>⁡</mo><mi>n</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O((n+m)\log n)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="mopen">((</span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">m</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">n</span><span class="mclose">)</span></span></span></span></td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-实现">7 实现</h2>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-keyword">class</span> <span class="hljs-title class_">PresidentSegmentTree</span> &#123;<br>	<span class="hljs-keyword">struct</span> <span class="hljs-title class_">node</span> &#123;<br>		<span class="hljs-type">int</span> lc = <span class="hljs-number">-1</span>, rc = <span class="hljs-number">-1</span>;<br>		<span class="hljs-type">int</span> dat = <span class="hljs-number">0</span>;<br>		<span class="hljs-type">int</span> lazy_add = <span class="hljs-number">0</span>;<br>		<span class="hljs-type">int</span> lazy_assign = <span class="hljs-number">0</span>;<br>		<span class="hljs-type">bool</span> is_assign = <span class="hljs-literal">false</span>;<br>	&#125;;<br><br>	vector&lt;node&gt; tr;<br>	vector&lt;<span class="hljs-type">int</span>&gt; root;<br>	<span class="hljs-type">int</span> rangeL, rangeR;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">int</span> <span class="hljs-title">create_node</span><span class="hljs-params">()</span> </span>&#123;<br>		tr.<span class="hljs-built_in">emplace_back</span>();<br>		<span class="hljs-keyword">return</span> tr.<span class="hljs-built_in">size</span>() - <span class="hljs-number">1</span>;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">int</span> <span class="hljs-title">clone_node</span><span class="hljs-params">(<span class="hljs-type">int</span> rt)</span> </span>&#123;<br>		<span class="hljs-keyword">if</span> (rt == <span class="hljs-number">-1</span>) <span class="hljs-keyword">return</span> <span class="hljs-built_in">create_node</span>();<br>		tr.<span class="hljs-built_in">emplace_back</span>(tr[rt]);<br>		<span class="hljs-keyword">return</span> tr.<span class="hljs-built_in">size</span>() - <span class="hljs-number">1</span>;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">int</span> <span class="hljs-title">apply_assign</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r, <span class="hljs-type">int</span> val)</span> </span>&#123;<br>		<span class="hljs-keyword">if</span> (rt == <span class="hljs-number">-1</span>) rt = <span class="hljs-built_in">create_node</span>();<br>		tr[rt].is_assign = <span class="hljs-literal">true</span>;<br>		tr[rt].lazy_assign = val;<br>		tr[rt].lazy_add = <span class="hljs-number">0</span>;<br>		tr[rt].dat = val * (r - l + <span class="hljs-number">1</span>);<br>		<span class="hljs-keyword">return</span> rt;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">int</span> <span class="hljs-title">apply_add</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r, <span class="hljs-type">int</span> val)</span> </span>&#123;<br>		<span class="hljs-keyword">if</span> (rt == <span class="hljs-number">-1</span>) rt = <span class="hljs-built_in">create_node</span>();<br>		<span class="hljs-keyword">if</span> (tr[rt].is_assign) &#123;<br>			tr[rt].lazy_assign += val;<br>		&#125; <span class="hljs-keyword">else</span> &#123;<br>			tr[rt].lazy_add += val;<br>		&#125;<br>		tr[rt].dat += val * (r - l + <span class="hljs-number">1</span>);<br>		<span class="hljs-keyword">return</span> rt;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">push_up</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r)</span> </span>&#123;<br>		<span class="hljs-type">int</span> res = <span class="hljs-number">0</span>;<br>		<span class="hljs-keyword">if</span> (tr[rt].is_assign) &#123;<br>			res = (tr[rt].lazy_assign + tr[rt].lazy_add) * (r - l + <span class="hljs-number">1</span>);<br>		&#125; <span class="hljs-keyword">else</span> &#123;<br>			res += (tr[rt].lc != <span class="hljs-number">-1</span> ? tr[tr[rt].lc].dat : <span class="hljs-number">0</span>);<br>			res += (tr[rt].rc != <span class="hljs-number">-1</span> ? tr[tr[rt].rc].dat : <span class="hljs-number">0</span>);<br>			res += tr[rt].lazy_add * (r - l + <span class="hljs-number">1</span>);<br>		&#125;<br>		tr[rt].dat = res;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">push_down</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r)</span> </span>&#123;<br>		<span class="hljs-type">int</span> mid = (l + r) &gt;&gt; <span class="hljs-number">1</span>;<br>		<span class="hljs-keyword">if</span> (tr[rt].is_assign) &#123;<br>			tr[rt].lc = <span class="hljs-built_in">clone_node</span>(tr[rt].lc);<br>			tr[rt].rc = <span class="hljs-built_in">clone_node</span>(tr[rt].rc);<br>			<span class="hljs-built_in">apply_assign</span>(tr[rt].lc, l, mid, tr[rt].lazy_assign);<br>			<span class="hljs-built_in">apply_assign</span>(tr[rt].rc, mid + <span class="hljs-number">1</span>, r, tr[rt].lazy_assign);<br>			tr[rt].is_assign = <span class="hljs-literal">false</span>;<br>		&#125;<br>		<span class="hljs-keyword">if</span> (tr[rt].lazy_add) &#123;<br>			tr[rt].lc = <span class="hljs-built_in">clone_node</span>(tr[rt].lc);<br>			tr[rt].rc = <span class="hljs-built_in">clone_node</span>(tr[rt].rc);<br>			<span class="hljs-built_in">apply_add</span>(tr[rt].lc, l, mid, tr[rt].lazy_add);<br>			<span class="hljs-built_in">apply_add</span>(tr[rt].rc, mid + <span class="hljs-number">1</span>, r, tr[rt].lazy_add);<br>			tr[rt].lazy_add = <span class="hljs-number">0</span>;<br>		&#125;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">build</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r, <span class="hljs-type">const</span> vector&lt;<span class="hljs-type">int</span>&gt; &amp;arr)</span> </span>&#123;<br>		<span class="hljs-keyword">if</span> (rt == <span class="hljs-number">-1</span>) rt = <span class="hljs-built_in">create_node</span>();<br>		<span class="hljs-keyword">if</span> (l == r) &#123;<br>			tr[rt].dat = arr[l];<br>			<span class="hljs-keyword">return</span> rt;<br>		&#125;<br>		<span class="hljs-type">int</span> mid = (l + r) &gt;&gt; <span class="hljs-number">1</span>;<br>		tr[rt].lc = <span class="hljs-built_in">build</span>(tr[rt].lc, l, mid, arr);<br>		tr[rt].rc = <span class="hljs-built_in">build</span>(tr[rt].rc, mid + <span class="hljs-number">1</span>, r, arr);<br>		<span class="hljs-built_in">push_up</span>(rt, l, r);<br>		<span class="hljs-keyword">return</span> rt;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">assign</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r, <span class="hljs-type">int</span> lb, <span class="hljs-type">int</span> ub, <span class="hljs-type">int</span> val)</span> </span>&#123;<br>		rt = <span class="hljs-built_in">clone_node</span>(rt);<br>		<span class="hljs-keyword">if</span> (lb &lt;= l &amp;&amp; r &lt;= ub) &#123;<br>			rt = <span class="hljs-built_in">apply_assign</span>(rt, l, r, val);<br>			<span class="hljs-keyword">return</span> rt;<br>		&#125;<br>		<span class="hljs-built_in">push_down</span>(rt, l, r);<br>		<span class="hljs-type">int</span> mid = (l + r) &gt;&gt; <span class="hljs-number">1</span>;<br>		<span class="hljs-keyword">if</span> (lb &lt;= mid) tr[rt].lc = <span class="hljs-built_in">assign</span>(tr[rt].lc, l, mid, lb, ub, val);<br>		<span class="hljs-keyword">if</span> (mid &lt; ub)  tr[rt].rc = <span class="hljs-built_in">assign</span>(tr[rt].rc, mid + <span class="hljs-number">1</span>, r, lb, ub, val);<br>		<span class="hljs-built_in">push_up</span>(rt, l, r);<br>		<span class="hljs-keyword">return</span> rt;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">add</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r, <span class="hljs-type">int</span> lb, <span class="hljs-type">int</span> ub, <span class="hljs-type">int</span> val)</span> </span>&#123;<br>		rt = <span class="hljs-built_in">clone_node</span>(rt);<br>		<span class="hljs-keyword">if</span> (lb &lt;= l &amp;&amp; r &lt;= ub) &#123;<br>			rt = <span class="hljs-built_in">apply_add</span>(rt, l, r, val);<br>			<span class="hljs-keyword">return</span> rt;<br>		&#125;<br>		<span class="hljs-built_in">push_down</span>(rt, l, r);<br>		<span class="hljs-type">int</span> mid = (l + r) &gt;&gt; <span class="hljs-number">1</span>;<br>		<span class="hljs-keyword">if</span> (lb &lt;= mid) tr[rt].lc = <span class="hljs-built_in">add</span>(tr[rt].lc, l, mid, lb, ub, val);<br>		<span class="hljs-keyword">if</span> (mid &lt; ub)  tr[rt].rc = <span class="hljs-built_in">add</span>(tr[rt].rc, mid + <span class="hljs-number">1</span>, r, lb, ub, val);<br>		<span class="hljs-built_in">push_up</span>(rt, l, r);<br>		<span class="hljs-keyword">return</span> rt;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">query</span><span class="hljs-params">(<span class="hljs-type">int</span> rt, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r, <span class="hljs-type">int</span> lb, <span class="hljs-type">int</span> ub)</span> </span>&#123;<br>		<span class="hljs-keyword">if</span> (rt == <span class="hljs-number">-1</span>) <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>		<span class="hljs-keyword">if</span> (lb &lt;= l &amp;&amp; r &lt;= ub) <span class="hljs-keyword">return</span> tr[rt].dat;<br>		<span class="hljs-type">int</span> L = <span class="hljs-built_in">max</span>(l, lb);<br>		<span class="hljs-type">int</span> R = <span class="hljs-built_in">min</span>(r, ub);<br>		<span class="hljs-type">int</span> len = R - L + <span class="hljs-number">1</span>;<br>		<span class="hljs-keyword">if</span> (tr[rt].is_assign) <span class="hljs-keyword">return</span> (tr[rt].lazy_assign + tr[rt].lazy_add) * len;<br>		<span class="hljs-type">int</span> res = <span class="hljs-number">0</span>;<br>		<span class="hljs-type">int</span> mid = (l + r) &gt;&gt; <span class="hljs-number">1</span>;<br>		<span class="hljs-keyword">if</span> (lb &lt;= mid) res += <span class="hljs-built_in">query</span>(tr[rt].lc, l, mid, lb, ub);<br>		<span class="hljs-keyword">if</span> (mid &lt; ub)  res += <span class="hljs-built_in">query</span>(tr[rt].rc, mid + <span class="hljs-number">1</span>, r, lb, ub);<br>		<span class="hljs-keyword">if</span> (tr[rt].lazy_add) res += tr[rt].lazy_add * len;<br>		<span class="hljs-keyword">return</span> res;<br>	&#125;<br><br><span class="hljs-keyword">public</span>:<br>	<span class="hljs-built_in">PresidentSegmentTree</span>() : <span class="hljs-built_in">rangeL</span>(<span class="hljs-number">1</span>), <span class="hljs-built_in">rangeR</span>(<span class="hljs-number">0</span>) &#123;<br>		tr.<span class="hljs-built_in">emplace_back</span>();<br>		root.<span class="hljs-built_in">emplace_back</span>(<span class="hljs-number">-1</span>);<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">explicit</span> <span class="hljs-title">PresidentSegmentTree</span><span class="hljs-params">(<span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r)</span> : rangeL(l), rangeR(r) &#123;</span><br>		tr.<span class="hljs-built_in">emplace_back</span>();<br>		root.<span class="hljs-built_in">emplace_back</span>(<span class="hljs-number">-1</span>);<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">explicit</span> <span class="hljs-title">PresidentSegmentTree</span><span class="hljs-params">(<span class="hljs-type">int</span> n)</span> : PresidentSegmentTree(<span class="hljs-number">1</span>, n) &#123;</span>&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">clear</span><span class="hljs-params">()</span> </span>&#123;<br>		rangeL = <span class="hljs-number">1</span>, rangeR = <span class="hljs-number">0</span>;<br>		tr.<span class="hljs-built_in">clear</span>(), tr.<span class="hljs-built_in">emplace_back</span>();<br>		root.<span class="hljs-built_in">clear</span>();<br>		root.<span class="hljs-built_in">emplace_back</span>(<span class="hljs-number">-1</span>);<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">reset</span><span class="hljs-params">(<span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r)</span> </span>&#123;<br>		<span class="hljs-built_in">clear</span>();<br>		rangeL = l, rangeR = r;<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">build</span><span class="hljs-params">(<span class="hljs-type">const</span> vector&lt;<span class="hljs-type">int</span>&gt;&amp; arr, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r)</span> </span>&#123;<br>		<span class="hljs-built_in">reset</span>(l, r);<br>		root.<span class="hljs-built_in">back</span>() = <span class="hljs-built_in">build</span>(<span class="hljs-number">-1</span>, rangeL, rangeR, arr);<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">assign</span><span class="hljs-params">(<span class="hljs-type">int</span> ver, <span class="hljs-type">int</span> pos, <span class="hljs-type">int</span> val)</span> </span>&#123;<br>		<span class="hljs-built_in">assert</span>(rangeL &lt;= rangeR);<br>		root.<span class="hljs-built_in">emplace_back</span>(<span class="hljs-built_in">assign</span>(root[ver], rangeL, rangeR, pos, pos, val));<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">assign</span><span class="hljs-params">(<span class="hljs-type">int</span> ver, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r, <span class="hljs-type">int</span> val)</span> </span>&#123;<br>		<span class="hljs-built_in">assert</span>(rangeL &lt;= rangeR);<br>		root.<span class="hljs-built_in">emplace_back</span>(<span class="hljs-built_in">assign</span>(root[ver], rangeL, rangeR, l, r, val));<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">add</span><span class="hljs-params">(<span class="hljs-type">int</span> ver, <span class="hljs-type">int</span> pos, <span class="hljs-type">int</span> val)</span> </span>&#123;<br>		<span class="hljs-built_in">assert</span>(rangeL &lt;= rangeR);<br>		root.<span class="hljs-built_in">emplace_back</span>(<span class="hljs-built_in">add</span>(root[ver], rangeL, rangeR, pos, pos, val));<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">void</span> <span class="hljs-title">add</span><span class="hljs-params">(<span class="hljs-type">int</span> ver, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r, <span class="hljs-type">int</span> val)</span> </span>&#123;<br>		<span class="hljs-built_in">assert</span>(rangeL &lt;= rangeR);<br>		root.<span class="hljs-built_in">emplace_back</span>(<span class="hljs-built_in">add</span>(root[ver], rangeL, rangeR, l, r, val));<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">int</span> <span class="hljs-title">query</span><span class="hljs-params">(<span class="hljs-type">int</span> ver, <span class="hljs-type">int</span> pos)</span> </span>&#123;<br>		<span class="hljs-built_in">assert</span>(rangeL &lt;= rangeR);<br>		<span class="hljs-comment">// root.emplace_back(root[ver]);</span><br>		<span class="hljs-keyword">return</span> <span class="hljs-built_in">query</span>(root[ver], rangeL, rangeR, pos, pos);<br>	&#125;<br><br>	<span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-type">int</span> <span class="hljs-title">query</span><span class="hljs-params">(<span class="hljs-type">int</span> ver, <span class="hljs-type">int</span> l, <span class="hljs-type">int</span> r)</span> </span>&#123;<br>		<span class="hljs-built_in">assert</span>(rangeL &lt;= rangeR);<br>		<span class="hljs-comment">// root.emplace_back(root[ver]);</span><br>		<span class="hljs-keyword">return</span> <span class="hljs-built_in">query</span>(root[ver], rangeL, rangeR, l, r);<br>	&#125;<br>&#125;;<br></code></pre></td></tr></table></figure>
+<h2 id="8-使用">8 使用</h2>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-type">int</span> n;<br>cin &gt;&gt; n;<br><span class="hljs-function">vector&lt;<span class="hljs-type">int</span>&gt; <span class="hljs-title">a</span><span class="hljs-params">(n + <span class="hljs-number">1</span>)</span></span>;<br><span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> i = <span class="hljs-number">1</span>; i &lt;= n; i++) cin &gt;&gt; a[i];<br><br><span class="hljs-function">PresidentSegmentTree <span class="hljs-title">pst</span><span class="hljs-params">(n)</span></span>;<br>pst.<span class="hljs-built_in">build</span>(a, <span class="hljs-number">1</span>, n);            <span class="hljs-comment">// 版本 0</span><br><br>pst.<span class="hljs-built_in">add</span>(<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, n, <span class="hljs-number">5</span>);           <span class="hljs-comment">// 基于版本 0：整段 +5，生成版本 1</span><br>pst.<span class="hljs-built_in">assign</span>(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">4</span>, <span class="hljs-number">0</span>);        <span class="hljs-comment">// 基于版本 1：把 [2,4] 赋值为 0，生成版本 2</span><br><br>cout &lt;&lt; pst.<span class="hljs-built_in">query</span>(<span class="hljs-number">2</span>, <span class="hljs-number">1</span>, n) &lt;&lt; <span class="hljs-string">&quot;\n&quot;</span>;  <span class="hljs-comment">// 在版本 2 上查询区间和</span><br>cout &lt;&lt; pst.<span class="hljs-built_in">query</span>(<span class="hljs-number">0</span>, <span class="hljs-number">3</span>) &lt;&lt; <span class="hljs-string">&quot;\n&quot;</span>;     <span class="hljs-comment">// 在版本 0 上单点查询，老版本不受影响</span><br></code></pre></td></tr></table></figure>
+<p>版本号就是 @@root@@ 的下标：@@build@@ 产生版本 0，每次 @@add@@/@@assign@@ 追加一个版本。<strong>老版本随时可查，且不受新操作影响</strong>——这正是可持久化的验收标准。</p>
+<h2 id="9-实现细节与易错点">9 实现细节与易错点</h2>
+<ul>
+<li><strong>@@push_down@@ 里漏 @@clone_node@@</strong>：本文最核心的坑（引理 1）。单版本测试永远发现不了，必须写「老版本再查询」的对拍。</li>
+<li><strong><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">a</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">_</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">d</mi></mrow><annotation encoding="application/x-tex">\mathrm{apply\_add}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0044em;vertical-align:-0.31em;"></span><span class="mord"><span class="mord mathrm">apply_add</span></span></span></span></span> 遇到 @@is_assign@@ 要把 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>v</mi></mrow><annotation encoding="application/x-tex">v</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span></span></span></span> 并入 @@lazy_assign@@</strong>，而不是写进 @@lazy_add@@：否则「赋值后再加」被拆成两个标记，赋值标记一覆盖就丢。</li>
+<li><strong>@@push_up@@ 必须带 @@l,r@@</strong>：要乘长度，这是与普通线段树签名不同之处。</li>
+<li><strong>@@build@@ 时用 @@root.back() = build(...)@@</strong>：构造函数里已经压了一个占位根（@@emplace_back(-1)@@），直接 @@emplace_back@@ 会多出一个悬空版本。</li>
+<li><strong>@@query@@ 遇到 @@is_assign@@ 立即返回</strong>，不要再递归——此时子树可能是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">-1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord">1</span></span></span></span> 或旧值，递归会读到过期数据。</li>
+<li><strong>版本号 ≠ 操作次数</strong>：只读操作不产生版本，别用循环变量当版本号。</li>
+<li><strong>@@vector@@ 扩容会让引用失效</strong>：@@node &amp;u = tr[i];@@ 之后又 @@emplace_back@@ 是未定义行为。本模板全部用下标访问，就是为了避开这一点。</li>
+<li><strong>内存</strong>：约 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mi>log</mi><mo>⁡</mo><mi>n</mi></mrow><annotation encoding="application/x-tex">m\log n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">m</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">n</span></span></span></span> 个结点，每个含 5 个 @@int/bool@@ 字段 ≈ 20 B。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>=</mo><mn>2</mn><mo>×</mo><msup><mn>10</mn><mn>5</mn></msup><mo separator="true">,</mo><mtext> </mtext><mi>n</mi><mo>=</mo><mn>2</mn><mo>×</mo><msup><mn>10</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">m=2\times10^5,\ n=2\times10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">m</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">2</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0085em;vertical-align:-0.1944em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">2</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span> 时要提前 @@reserve@@，否则扩容峰值会翻倍。</li>
+<li><strong>单点与区间重载并存</strong>：@@assign(ver,pos,val)@@ 与 @@assign(ver,l,r,val)@@ 同名，参数个数不同；调用时注意别让 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><mi>n</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">int</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6595em;"></span><span class="mord mathnormal">in</span><span class="mord mathnormal">t</span></span></span></span> 被隐式转成区间。</li>
+</ul>
+<h2 id="10-扩展">10 扩展</h2>
+<p><strong>纯标记永久化（不下传）.</strong> 把第 4、5 节推广到底：完全不下传，所有查询都沿途补算。省掉 @@push_down@@ 与两处 clone，常数更小，但要求可合并信息（如和、最值），对「先赋值后加」这种非交换标记也可行，只是补算必须能按标记的语义顺序合成。</p>
+<p><strong>可持久化 01-Trie / 可持久化并查集.</strong> 同一套「clone 路径 + 不改旧结点」。</p>
+<p><strong>与势能线段树的不兼容.</strong> 区间取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>min</mi><mo>⁡</mo></mrow><annotation encoding="application/x-tex">\min</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6679em;"></span><span class="mop">min</span></span></span></span>、区间取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>gcd</mi><mo>⁡</mo></mrow><annotation encoding="application/x-tex">\gcd</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mop"><span style="margin-right:0.0139em;">g</span>cd</span></span></span></span> 这类需要访问子结点统计的算法（Segment Tree Beats）在共享结构上代价极高：一次 rebase 要改很多结点，路径复制退化为大面积复制。</p>
+<p><strong>持久化 + 二分答案.</strong> 把「版本」当时间轴，二分历史时刻；配合第 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span> 小的模板就是「历史第 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span> 大」类问题。</p>
+<h2 id="11-参考">11 参考</h2>
+<ul>
+<li>OI Wiki：<a target="_blank" rel="noopener" href="https://oi-wiki.org/ds/persistent-seg/">可持久化线段树</a>、<a target="_blank" rel="noopener" href="https://oi-wiki.org/ds/seg/">线段树的标记永久化</a></li>
+<li>经典讨论：Codeforces 博客 <em>Persistent segment tree with lazy propagation</em>（push_down 复制与 append-tag 两种做法）</li>
+<li>模板题：<a target="_blank" rel="noopener" href="https://www.luogu.com.cn/problem/P3834">P3834</a>（静态第 k 小）、<a target="_blank" rel="noopener" href="https://www.luogu.com.cn/problem/P2572">P2572 [SCOI2010] 序列操作</a>（赋值/翻转/查询，可加可持久化做「历史查询」）</li>
+<li>《算法导论》第 14 章：结点增广与不变量</li>
+</ul>
+<!-- 原文：洛谷文章 u0xycgy6「线段树」 -->
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E6%A8%A1%E6%9D%BF/" class="category-chain-item">模板</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E6%A8%A1%E6%9D%BF/%E7%BA%BF%E6%AE%B5%E6%A0%91/" class="category-chain-item">线段树</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E6%87%92%E6%A0%87%E8%AE%B0/" class="print-no-link">#懒标记</a>
+      
+        <a href="/tags/%E4%B8%BB%E5%B8%AD%E6%A0%91/" class="print-no-link">#主席树</a>
+      
+        <a href="/tags/%E5%8F%AF%E6%8C%81%E4%B9%85%E5%8C%96%E7%BA%BF%E6%AE%B5%E6%A0%91/" class="print-no-link">#可持久化线段树</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>主席树（区间加、区间赋值）</div>
+      <div>https://rexisli.github.io/2026/10/27/persistent-segtree-range/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>rexisli</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月27日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/27/segment-tree-mul-add-assign/" title="线段树（区间乘、区间加、区间赋值）">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">线段树（区间乘、区间加、区间赋值）</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/27/persistent-segtree-kth/" title="主席树（单点修改，区间第 k 小）">
+                        <span class="hidden-mobile">主席树（单点修改，区间第 k 小）</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+      <a href="https://hexo.io" target="_blank" rel="nofollow noopener">Hexo</a> + <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">Fluid</a>
+
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
